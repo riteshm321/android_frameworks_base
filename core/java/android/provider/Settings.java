@@ -5784,6 +5784,13 @@ public final class Settings {
         public static final String VOLTE_VOWIFI_OVERRIDE = "volte_vowifi_override";
 
         /**
+         * Disable power menu on secure lock screens
+         *
+         * @hide
+         */
+        public static final String LOCK_POWER_MENU_DISABLED = "lockscreen_power_menu_disabled";
+
+        /**
          * Whether to display cross sign for a data disabled connection
          * @hide
          */
