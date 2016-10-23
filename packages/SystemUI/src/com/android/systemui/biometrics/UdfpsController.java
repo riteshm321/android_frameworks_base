@@ -117,6 +117,7 @@ public class UdfpsController implements DozeReceiver, UdfpsHbmProvider {
     @NonNull private final StatusBarKeyguardViewManager mKeyguardViewManager;
     @NonNull private final DumpManager mDumpManager;
     @NonNull private final KeyguardUpdateMonitor mKeyguardUpdateMonitor;
+    @NonNull private final Handler mMainHandler;
     @Nullable private final Vibrator mVibrator;
     @NonNull private final FalsingManager mFalsingManager;
     @NonNull private final PowerManager mPowerManager;
@@ -216,14 +217,12 @@ public class UdfpsController implements DozeReceiver, UdfpsHbmProvider {
         }
 
         void onAcquiredGood() {
-            Log.d(TAG, "onAcquiredGood");
             if (mEnrollHelper != null) {
                 mEnrollHelper.animateIfLastStep();
             }
         }
 
         void onEnrollmentHelp() {
-            Log.d(TAG, "onEnrollmentHelp");
             if (mEnrollHelper != null) {
                 mEnrollHelper.onEnrollmentHelp();
             }
@@ -317,7 +316,7 @@ public class UdfpsController implements DozeReceiver, UdfpsHbmProvider {
             mFgExecutor.execute(() -> {
                 if (acquiredInfo == 6 && (mStatusBarStateController.isDozing() || !mScreenOn)) {
                     if (vendorCode == mUdfpsVendorCode) {
-                        mPowerManager.wakeUp(SystemClock.uptimeMillis(),
+                        mPowerManager.wakeUp(mSystemClock.uptimeMillis(),
                                 PowerManager.WAKE_REASON_GESTURE, TAG);
                         onAodInterrupt(0, 0, 0, 0); // To-Do pass proper values
                     }
@@ -556,6 +555,7 @@ public class UdfpsController implements DozeReceiver, UdfpsHbmProvider {
         mContext = context;
         mExecution = execution;
         // TODO (b/185124905): inject main handler and vibrator once done prototyping
+        mMainHandler = mainHandler;
         mVibrator = vibrator;
         mInflater = inflater;
         // The fingerprint manager is queried for UDFPS before this class is constructed, so the
@@ -834,7 +834,6 @@ public class UdfpsController implements DozeReceiver, UdfpsHbmProvider {
                         mDumpManager,
                         mLockscreenShadeTransitionController,
                         mConfigurationController,
-                        mKeyguardStateController,
                         mSystemClock,
                         mKeyguardStateController,
                         mUnlockedScreenOffAnimationController,

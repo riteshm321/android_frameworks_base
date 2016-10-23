@@ -77,7 +77,7 @@ public class RotationLockTile extends SecureQSTile<BooleanState> implements
             ActivityStarter activityStarter,
             QSLogger qsLogger,
             RotationLockController rotationLockController,
-            KeyguardStateController keyguardStateController
+            KeyguardStateController keyguardStateController,
             SensorPrivacyManager privacyManager,
             BatteryController batteryController,
             SecureSettings secureSettings
