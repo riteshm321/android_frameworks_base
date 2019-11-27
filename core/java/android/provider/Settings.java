@@ -5625,6 +5625,11 @@ public final class Settings {
         public static final String THREE_FINGER_GESTURE = "three_finger_gesture";
 
         /**
+         * @hide
+         */
+        public static final String USE_OLD_MOBILETYPE = "use_old_mobiletype";
+
+        /**
          * Use doubletap as doze pulse triggers
          * @hide
          */
