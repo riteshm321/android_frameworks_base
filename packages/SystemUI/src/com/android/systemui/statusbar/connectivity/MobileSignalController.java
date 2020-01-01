@@ -22,15 +22,12 @@ import static com.android.settingslib.mobile.MobileMappings.mapIconSets;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
-import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Resources;
 import android.database.ContentObserver;
 import android.net.NetworkCapabilities;
-import android.net.Uri;
 import android.os.Handler;
-import android.os.UserHandle;
 import android.os.Looper;
 import android.provider.Settings;
 import android.provider.Settings.Global;
@@ -64,16 +61,19 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.settingslib.AccessibilityContentDescriptions;
 import com.android.settingslib.SignalIcon.MobileIconGroup;
 import com.android.settingslib.graph.SignalDrawable;
+import com.android.settingslib.mobile.MobileMappings;
 import com.android.settingslib.mobile.MobileMappings.Config;
 import com.android.settingslib.mobile.MobileStatusTracker;
 import com.android.settingslib.mobile.MobileStatusTracker.MobileStatus;
 import com.android.settingslib.mobile.MobileStatusTracker.SubscriptionDefaults;
 import com.android.settingslib.mobile.TelephonyIcons;
 import com.android.settingslib.net.SignalStrengthUtil;
+import com.android.systemui.Dependency;
 import com.android.systemui.R;
 import com.android.systemui.dagger.qualifiers.Background;
 import com.android.systemui.flags.FeatureFlags;
 import com.android.systemui.flags.Flags;
+import com.android.systemui.tuner.TunerService;
 import com.android.systemui.util.CarrierConfigTracker;
 
 import java.io.PrintWriter;
@@ -86,7 +86,8 @@ import java.util.Map;
 /**
  * Monitors the mobile signal changes and update the SysUI icons.
  */
-public class MobileSignalController extends SignalController<MobileState, MobileIconGroup> {
+public class MobileSignalController extends SignalController<MobileState, MobileIconGroup>
+        implements TunerService.Tunable {
     private static final SimpleDateFormat SSDF = new SimpleDateFormat("MM-dd HH:mm:ss.SSS");
     private static final int STATUS_HISTORY_SIZE = 64;
     private static final int IMS_TYPE_WWAN = 1;
@@ -125,7 +126,16 @@ public class MobileSignalController extends SignalController<MobileState, Mobile
     private ImsManager mImsManager;
     private FeatureConnector<ImsManager> mFeatureConnector;
     private int mCallState = TelephonyManager.CALL_STATE_IDLE;
-    private boolean mShowVolteIcon;
+
+    private int mVoLTEicon = 0;
+    private boolean mRoamingIconAllowed;
+
+    private static final String VOLTE_ICON_STYLE =
+            "system:" + Settings.System.VOLTE_ICON_STYLE;
+    private static final String ROAMING_INDICATOR_ICON =
+            "system:" + Settings.System.ROAMING_INDICATOR_ICON;
+    private static final String SHOW_FOURG_ICON =
+            "system:" + Settings.System.SHOW_FOURG_ICON;
 
     private final MobileStatusTracker.Callback mMobileCallback =
             new MobileStatusTracker.Callback() {
@@ -213,8 +223,6 @@ public class MobileSignalController extends SignalController<MobileState, Mobile
         }
     };
 
-    private boolean mRoamingIconAllowed;
-
     // TODO: Reduce number of vars passed in, if we have the NetworkController, probably don't
     // need listener lists anymore.
     public MobileSignalController(
@@ -254,8 +262,6 @@ public class MobileSignalController extends SignalController<MobileState, Mobile
         mLastState.enabled = mCurrentState.enabled = hasMobileData;
         mLastState.iconGroup = mCurrentState.iconGroup = mDefaultIcons;
 
-        mShowVolteIcon = false;
-
         int phoneId = mSubscriptionInfo.getSimSlotIndex();
         mFeatureConnector = new FeatureConnector(mContext, phoneId,
                 new FeatureConnector.ManagerFactory<ImsManager> () {
@@ -291,44 +297,32 @@ public class MobileSignalController extends SignalController<MobileState, Mobile
         mMobileStatusTracker = new MobileStatusTracker(mPhone, receiverLooper,
                 info, mDefaults, mMobileCallback);
         mProviderModelBehavior = featureFlags.isEnabled(Flags.COMBINED_STATUS_BAR_SIGNAL_ICONS);
-
-	Handler mHandler = new Handler();
-        SettingsObserver settingsObserver = new SettingsObserver(mHandler);
-        settingsObserver.observe();
+        Dependency.get(TunerService.class).addTunable(this, VOLTE_ICON_STYLE);
+        Dependency.get(TunerService.class).addTunable(this, ROAMING_INDICATOR_ICON);
+        Dependency.get(TunerService.class).addTunable(this, SHOW_FOURG_ICON);
     }
 
-    class SettingsObserver extends ContentObserver {
-        SettingsObserver(Handler handler) {
-            super(handler);
+    @Override
+    public void onTuningChanged(String key, String newValue) {
+        switch (key) {
+            case VOLTE_ICON_STYLE:
+                mVoLTEicon =
+                    TunerService.parseInteger(newValue, 0);
+                notifyListeners();
+                break;
+            case ROAMING_INDICATOR_ICON:
+                mRoamingIconAllowed =
+                    TunerService.parseIntegerSwitch(newValue, true);
+                updateTelephony();
+                break;
+            case SHOW_FOURG_ICON:
+                mConfig = Config.readConfig(mContext);
+                setConfiguration(mConfig);
+                notifyListeners();
+                break;
+            default:
+                break;
         }
-        void observe() {
-            ContentResolver resolver = mContext.getContentResolver();
-            resolver.registerContentObserver(
-                    Settings.System.getUriFor(Settings.System.SHOW_FOURG_ICON), false,
-                    this, UserHandle.USER_ALL);
-            resolver.registerContentObserver(
-                    Settings.System.getUriFor(Settings.System.ROAMING_INDICATOR_ICON), false,
-                    this, UserHandle.USER_ALL);
-            updateSettings();
-        }
-
-        /*
-         *  @hide
-         */
-        @Override
-        public void onChange(boolean selfChange) {
-            updateSettings();
-        }
-    }
-
-    private void updateSettings() {
-        ContentResolver resolver = mContext.getContentResolver();
-        mRoamingIconAllowed = Settings.System.getIntForUser(resolver,
-                Settings.System.ROAMING_INDICATOR_ICON, 1,
-                UserHandle.USER_CURRENT) == 1;
-        mConfig = Config.readConfig(mContext);
-        setConfiguration(mConfig);
-        notifyListeners();
     }
 
     void setConfiguration(Config config) {
@@ -457,15 +451,45 @@ public class MobileSignalController extends SignalController<MobileState, Mobile
     }
 
     private boolean isVolteSwitchOn() {
-        return mImsManager != null && mImsManager.isEnhanced4gLteModeSettingEnabledByUser();
+        return mImsManager != null && mVoLTEicon > 0;
     }
 
     private int getVolteResId() {
         int resId = 0;
 
-        if ( (mCurrentState.voiceCapable || mCurrentState.videoCapable)
-                &&  mCurrentState.imsRegistered ) {
-            resId = R.drawable.ic_volte;
+        if ((mCurrentState.voiceCapable || mCurrentState.videoCapable)
+                &&  mCurrentState.imsRegistered) {
+            switch (mVoLTEicon) {
+                case 1:
+                    resId = R.drawable.ic_volte1;
+                    break;
+                case 2:
+                    resId = R.drawable.ic_volte2;
+                    break;
+                case 3:
+                    resId = R.drawable.ic_volte3;
+                    break;
+                case 4:
+                    resId = R.drawable.ic_volte4;
+                    break;
+                case 5:
+                    resId = R.drawable.ic_volte5;
+                    break;
+                case 6:
+                    resId = R.drawable.ic_volte6;
+                    break;
+                case 7:
+                    resId = R.drawable.ic_volte7;
+                    break;
+                case 8:
+                    resId = R.drawable.ic_volte8; // EMUI icon
+                    break;
+                case 9:
+                    resId = R.drawable.ic_volte9; //Oneplus Compact
+                    break;
+                default:
+                    break;
+            }
         }
         return resId;
     }
@@ -542,7 +566,7 @@ public class MobileSignalController extends SignalController<MobileState, Mobile
         final QsInfo qsInfo = getQsInfo(contentDescription, icons.dataType);
         final SbInfo sbInfo = getSbInfo(contentDescription, icons.dataType);
 
-        int volteId = mShowVolteIcon && isVolteSwitchOn() ? getVolteResId() : 0;
+        int volteId = isVolteSwitchOn() ? getVolteResId() : 0;
 
         MobileDataIndicators mobileDataIndicators = new MobileDataIndicators(
                 sbInfo.icon,
@@ -557,7 +581,7 @@ public class MobileSignalController extends SignalController<MobileState, Mobile
                 mSubscriptionInfo.getSubscriptionId(),
                 mCurrentState.roaming,
                 sbInfo.showTriangle,
-                mCurrentState.isDefault);
+                mCurrentState.isDefault,
                 volteId);
         callback.setMobileDataIndicators(mobileDataIndicators);
     }
@@ -568,6 +592,8 @@ public class MobileSignalController extends SignalController<MobileState, Mobile
         CharSequence qsDescription = null;
 
         if (mCurrentState.dataSim) {
+            // If using provider model behavior, only show QS icons if the state is also default
+            if (!mCurrentState.isDefault) {
             if (mProviderModelBehavior) {
                 return new QsInfo(qsTypeIcon, qsIcon, qsDescription);
             }
@@ -1047,7 +1073,7 @@ public class MobileSignalController extends SignalController<MobileState, Mobile
     private final BroadcastReceiver mVolteSwitchObserver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
             Log.d(mTag, "action=" + intent.getAction());
-            if (mShowVolteIcon) {
+            if (isVolteSwitchOn()) {
                 notifyListeners();
             }
         }
