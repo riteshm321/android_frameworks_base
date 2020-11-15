@@ -5696,6 +5696,12 @@ public final class Settings {
         @Readable
         public static final String BATTERY_LIGHT_REALLYFULL_COLOR = "battery_light_reallyfull_color";
 
+        /**
+         * Whether to show heads up only for dialer and sms apps
+         * @hide
+         */
+        public static final String LESS_BORING_HEADS_UP = "less_boring_heads_up";
+
 	/**
          * Adaptive playback
          * Automatically pause media when the volume is muted and
