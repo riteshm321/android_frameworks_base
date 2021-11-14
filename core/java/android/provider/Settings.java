@@ -11142,6 +11142,14 @@ public final class Settings {
         public static final String LAUNCHER_TASKBAR_EDUCATION_SHOWING =
                 "launcher_taskbar_education_showing";
 
+         /**
+         * Enable udfps detection even when screen is off
+         * Default value is 0
+         * @hide
+         */
+        @Readable
+        public static final String SCREEN_OFF_UDFPS_ENABLED = "screen_off_udfps_enabled";
+
         /**
          * Gesture navbar length mode.
          * Supported modes: 0 for hidden, 1 for normal length, 2 for medium and 3 for long.
