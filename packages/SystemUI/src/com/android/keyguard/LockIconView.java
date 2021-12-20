@@ -27,6 +27,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.VisibleForTesting;
 
 import com.android.settingslib.Utils;
 import com.android.systemui.Dumpable;
@@ -47,6 +48,7 @@ public class LockIconView extends FrameLayout implements Dumpable {
     private ImageView mBgView;
 
     private int mLockIconColor;
+    private boolean mUseBackground = false;
 
     public LockIconView(Context context, AttributeSet attrs) {
         super(context, attrs);
