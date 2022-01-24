@@ -117,7 +117,6 @@ public class UdfpsController implements DozeReceiver, UdfpsHbmProvider {
     @NonNull private final StatusBarKeyguardViewManager mKeyguardViewManager;
     @NonNull private final DumpManager mDumpManager;
     @NonNull private final KeyguardUpdateMonitor mKeyguardUpdateMonitor;
-    @NonNull private final Handler mMainHandler;
     @Nullable private final Vibrator mVibrator;
     @NonNull private final FalsingManager mFalsingManager;
     @NonNull private final PowerManager mPowerManager;
@@ -555,7 +554,6 @@ public class UdfpsController implements DozeReceiver, UdfpsHbmProvider {
         mContext = context;
         mExecution = execution;
         // TODO (b/185124905): inject main handler and vibrator once done prototyping
-        mMainHandler = mainHandler;
         mVibrator = vibrator;
         mInflater = inflater;
         // The fingerprint manager is queried for UDFPS before this class is constructed, so the
@@ -1051,7 +1049,7 @@ public class UdfpsController implements DozeReceiver, UdfpsHbmProvider {
             @Nullable Runnable onHbmEnabled) {
         // TO-DO send call to lineage biometric hal and/or add dummy jni that device could override
         if (onHbmEnabled != null) {
-            mMainHandler.post(onHbmEnabled);
+            onHbmEnabled.run();
         }
     }
 
@@ -1059,7 +1057,7 @@ public class UdfpsController implements DozeReceiver, UdfpsHbmProvider {
     public void disableHbm(@Nullable Runnable onHbmDisabled) {
         // TO-DO send call to lineage biometric hal and/or add dummy jni that device could override
         if (onHbmDisabled != null) {
-            mMainHandler.post(onHbmDisabled);
+            onHbmDisabled.run();
         }
     }
 }

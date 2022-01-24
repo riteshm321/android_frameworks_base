@@ -361,7 +361,6 @@ public class DisplayPolicy {
 
     private int mDisplayCutoutTouchableRegionSize;
     private SettingsObserver mSettingsObserver;
-    private int mDisplayCutoutTouchableRegionSize;
 
     /**
      * The area covered by system windows which belong to another display. Forwarded insets is set
