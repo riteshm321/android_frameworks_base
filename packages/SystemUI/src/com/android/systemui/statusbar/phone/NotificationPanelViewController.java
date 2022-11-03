@@ -123,6 +123,7 @@ import com.android.keyguard.dagger.KeyguardStatusBarViewComponent;
 import com.android.keyguard.dagger.KeyguardStatusViewComponent;
 import com.android.keyguard.dagger.KeyguardUserSwitcherComponent;
 import com.android.systemui.DejankUtils;
+import com.android.systemui.Dependency;
 import com.android.systemui.R;
 import com.android.systemui.animation.ActivityLaunchAnimator;
 import com.android.systemui.animation.Interpolators;
@@ -314,6 +315,8 @@ public class NotificationPanelViewController extends PanelViewController impleme
             "system:" + Settings.System.RETICKER_STATUS;
     private static final String RETICKER_COLORED =
             "system:" + Settings.System.RETICKER_COLORED;
+    private static final String NEW_RETICKER =
+            "system:" + Settings.System.NEW_RETICKER;
 
     private static final Rect M_DUMMY_DIRTY_RECT = new Rect(0, 0, 1, 1);
     private static final Rect EMPTY_RECT = new Rect();
@@ -706,6 +709,7 @@ public class NotificationPanelViewController extends PanelViewController impleme
     private NotificationStackScrollLayout mNotificationStackScroller;
     private boolean mReTickerStatus;
     private boolean mReTickerColored;
+    private boolean mNewReticker;
 
     private View.AccessibilityDelegate mAccessibilityDelegate = new View.AccessibilityDelegate() {
         @Override
@@ -884,6 +888,7 @@ public class NotificationPanelViewController extends PanelViewController impleme
         mTunerService = Dependency.get(TunerService.class);
         mTunerService.addTunable(this, RETICKER_STATUS);
         mTunerService.addTunable(this, RETICKER_COLORED);
+        mTunerService.addTunable(this, NEW_RETICKER);
         mPanelEventsEmitter = panelEventsEmitter;
         pulseExpansionHandler.setPulseExpandAbortListener(() -> {
             if (mQs != null) {
@@ -1021,6 +1026,10 @@ public class NotificationPanelViewController extends PanelViewController impleme
                 mReTickerColored =
                         TunerService.parseIntegerSwitch(newValue, false);
                 break;
+            case NEW_RETICKER:
+                mNewReticker =
+                        TunerService.parseIntegerSwitch(newValue, false);
+                break;
             default:
                 break;
         }
@@ -1067,9 +1076,10 @@ public class NotificationPanelViewController extends PanelViewController impleme
         mPreviewContainer = mView.findViewById(R.id.preview_container);
         mKeyguardBottomArea.setPreviewContainer(mPreviewContainer);
 
-        mReTickerComeback = mView.findViewById(R.id.ticker_comeback);
-        mReTickerComebackIcon = mView.findViewById(R.id.ticker_comeback_icon);
-        mReTickerContentTV = mView.findViewById(R.id.ticker_content);
+        mReTickerComeback = mView.findViewById(mNewReticker ? R.id.ticker_comeback_new : R.id.ticker_comeback);
+        mReTickerComebackIcon = mView.findViewById(mNewReticker ? R.id.ticker_comeback_icon_new : R.id.ticker_comeback_icon);
+        mReTickerContentTV = mView.findViewById( mNewReticker ? R.id.ticker_content_new : R.id.ticker_content);
+
         mNotificationStackScroller = mView.findViewById(R.id.notification_stack_scroller);
 
         initBottomArea();
@@ -5248,7 +5258,7 @@ public class NotificationPanelViewController extends PanelViewController impleme
         }
         String reTickerContent;
         if (visibility && getExpandedFraction() != 1) {
-            mNotificationStackScroller.setVisibility(GONE);
+            mNotificationStackScroller.setVisibility(View.GONE);
             StatusBarNotification sbn = mHeadsUpManager.getTopEntry().getRow().getEntry().getSbn();
             Notification notification = sbn.getNotification();
             String pkgname = sbn.getPackageName();
@@ -5289,14 +5299,22 @@ public class NotificationPanelViewController extends PanelViewController impleme
             mReTickerContentTV.setText(mergedContentText);
             mReTickerContentTV.setTextAppearance(mView.getContext(), R.style.TextAppearance_Notifications_reTicker);
             mReTickerContentTV.setSelected(true);
-            RetickerAnimations.doBounceAnimationIn(mReTickerComeback);
+            if (mNewReticker) {
+                RetickerAnimations.revealAnimation(mReTickerComeback);
+            } else {
+                RetickerAnimations.doBounceAnimationIn(mReTickerComeback);
+            }
             if (reTickerIntent != null) {
                 mReTickerComeback.setOnClickListener(v -> {
                     try {
                         reTickerIntent.send();
                     } catch (PendingIntent.CanceledException e) {
                     }
-                    RetickerAnimations.doBounceAnimationOut(mReTickerComeback, mNotificationStackScroller);
+                    if(mNewReticker) {
+                        RetickerAnimations.revealAnimationHide(mReTickerComeback, mNotificationStackScroller);
+                    } else {
+                        RetickerAnimations.doBounceAnimationOut(mReTickerComeback, mNotificationStackScroller);
+                    }
                     reTickerViewVisibility();
                 });
             }
@@ -5320,7 +5338,11 @@ public class NotificationPanelViewController extends PanelViewController impleme
     }
 
     public void reTickerDismissal() {
-        RetickerAnimations.doBounceAnimationOut(mReTickerComeback, mNotificationStackScroller);
+        if (mNewReticker) {
+            RetickerAnimations.revealAnimationHide(mReTickerComeback, mNotificationStackScroller);
+        } else {
+            RetickerAnimations.doBounceAnimationOut(mReTickerComeback, mNotificationStackScroller);
+        }
         mReTickerComeback.getViewTreeObserver().removeOnComputeInternalInsetsListener(mInsetsListener);
     }
 
