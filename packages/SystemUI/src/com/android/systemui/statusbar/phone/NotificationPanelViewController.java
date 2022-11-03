@@ -317,6 +317,8 @@ public class NotificationPanelViewController extends PanelViewController impleme
             "system:" + Settings.System.RETICKER_COLORED;
     private static final String NEW_RETICKER =
             "system:" + Settings.System.NEW_RETICKER;
+    private static final String NEW_RETICKER_ANIMATION =
+            "system:" + Settings.System.NEW_RETICKER_ANIMATION;
 
     private static final Rect M_DUMMY_DIRTY_RECT = new Rect(0, 0, 1, 1);
     private static final Rect EMPTY_RECT = new Rect();
@@ -710,6 +712,7 @@ public class NotificationPanelViewController extends PanelViewController impleme
     private boolean mReTickerStatus;
     private boolean mReTickerColored;
     private boolean mNewReticker;
+    private boolean mNewRetickerAnimation;
 
     private View.AccessibilityDelegate mAccessibilityDelegate = new View.AccessibilityDelegate() {
         @Override
@@ -889,6 +892,7 @@ public class NotificationPanelViewController extends PanelViewController impleme
         mTunerService.addTunable(this, RETICKER_STATUS);
         mTunerService.addTunable(this, RETICKER_COLORED);
         mTunerService.addTunable(this, NEW_RETICKER);
+        mTunerService.addTunable(this, NEW_RETICKER_ANIMATION);
         mPanelEventsEmitter = panelEventsEmitter;
         pulseExpansionHandler.setPulseExpandAbortListener(() -> {
             if (mQs != null) {
@@ -1028,6 +1032,10 @@ public class NotificationPanelViewController extends PanelViewController impleme
                 break;
             case NEW_RETICKER:
                 mNewReticker =
+                        TunerService.parseIntegerSwitch(newValue, false);
+                break;
+            case NEW_RETICKER_ANIMATION:
+                mNewRetickerAnimation =
                         TunerService.parseIntegerSwitch(newValue, false);
                 break;
             default:
@@ -5299,7 +5307,7 @@ public class NotificationPanelViewController extends PanelViewController impleme
             mReTickerContentTV.setText(mergedContentText);
             mReTickerContentTV.setTextAppearance(mView.getContext(), R.style.TextAppearance_Notifications_reTicker);
             mReTickerContentTV.setSelected(true);
-            if (mNewReticker) {
+            if (mNewReticker || mNewRetickerAnimation) {
                 RetickerAnimations.revealAnimation(mReTickerComeback);
             } else {
                 RetickerAnimations.doBounceAnimationIn(mReTickerComeback);
@@ -5310,7 +5318,7 @@ public class NotificationPanelViewController extends PanelViewController impleme
                         reTickerIntent.send();
                     } catch (PendingIntent.CanceledException e) {
                     }
-                    if(mNewReticker) {
+                    if(mNewReticker || mNewRetickerAnimation) {
                         RetickerAnimations.revealAnimationHide(mReTickerComeback, mNotificationStackScroller);
                     } else {
                         RetickerAnimations.doBounceAnimationOut(mReTickerComeback, mNotificationStackScroller);
@@ -5338,7 +5346,7 @@ public class NotificationPanelViewController extends PanelViewController impleme
     }
 
     public void reTickerDismissal() {
-        if (mNewReticker) {
+        if (mNewReticker || mNewRetickerAnimation) {
             RetickerAnimations.revealAnimationHide(mReTickerComeback, mNotificationStackScroller);
         } else {
             RetickerAnimations.doBounceAnimationOut(mReTickerComeback, mNotificationStackScroller);
