@@ -703,7 +703,7 @@
     <dimen name="keyguard_affordance_height">48dp</dimen>
     <dimen name="keyguard_affordance_width">48dp</dimen>
     <dimen name="keyguard_affordance_padding">10dp</dimen>
-    <dimen name="keyguard_affordance_margin">15dp</dimen>
+    <dimen name="keyguard_affordance_margin">20dp</dimen>
 
     <dimen name="keyguard_affordance_fixed_height">48dp</dimen>
     <dimen name="keyguard_affordance_fixed_width">48dp</dimen>
