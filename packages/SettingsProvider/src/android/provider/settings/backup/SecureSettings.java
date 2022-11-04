@@ -207,8 +207,5 @@ public class SecureSettings {
         Settings.Secure.STATUS_BAR_SHOW_VIBRATE_ICON,
         Settings.Secure.TETHERING_ALLOW_VPN_UPSTREAMS,
         Settings.Secure.GESTURE_NAVBAR_LENGTH_MODE,
-        Settings.Secure.QS_SHOW_BRIGHTNESS,
-        Settings.Secure.QS_BRIGHTNESS_POSITION_BOTTOM,
-        Settings.Secure.QS_SHOW_AUTO_BRIGHTNESS_BUTTON,
     };
 }
