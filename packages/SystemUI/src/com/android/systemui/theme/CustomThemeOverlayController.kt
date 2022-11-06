@@ -77,6 +77,7 @@ class CustomThemeOverlayController @Inject constructor(
     featureFlags: FeatureFlags,
     @Main resources: Resources,
     wakefulnessLifecycle: WakefulnessLifecycle,
+    systemSettings: SystemSettings,
     configurationController: ConfigurationController
 ) : ThemeOverlayController(
     context,
@@ -94,6 +95,7 @@ class CustomThemeOverlayController @Inject constructor(
     featureFlags,
     resources,
     wakefulnessLifecycle,
+    systemSettings,
     configurationController,
 ), Tunable {
     private lateinit var cond: Zcam.ViewingConditions
